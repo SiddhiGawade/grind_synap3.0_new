@@ -1,0 +1,97 @@
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import SignupPage from './components/SignupPage';
+import SigninPage from './components/SigninPage';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import ParticipantDashboard from './components/ParticipantDashboard';
+import CreatorDashboard from './components/CreatorDashboard';
+import JudgeDashboard from './components/JudgeDashboard';
+import LandingPage from './components/LandingPage';
+import EventDescription from './components/EventDescription';
+
+// Main App Component
+const App = () => {
+  const [currentPage, setCurrentPage] = useState('landing');
+  const { user, loading } = useAuth();
+
+  const handleNavigation = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Automatically navigate to dashboard when user is authenticated
+  React.useEffect(() => {
+    if (user && currentPage !== 'dashboard') {
+      setCurrentPage('dashboard');
+    } else if (!user && (currentPage === 'dashboard')) {
+      setCurrentPage('landing');
+    }
+  }, [user, currentPage]);
+
+  // Show loading state while auth is being initialized
+  if (loading) {
+    return (
+      <div className="app">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          fontSize: '18px',
+          color: '#666'
+        }}>
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
+  const renderPage = () => {
+    if (user && currentPage === 'dashboard') {
+      switch (user.role) {
+        case 'participant':
+          return (
+            <Routes>
+              <Route path="/" element={<ParticipantDashboard onNavigate={handleNavigation} />} />
+              <Route path="/event" element={<EventDescription />} />
+            </Routes>
+          );
+        case 'organizer':
+          return <CreatorDashboard />;
+        case 'judge':
+          return <JudgeDashboard />;
+        default:
+          return <ParticipantDashboard />;
+      }
+    }
+
+    switch (currentPage) {
+      case 'signup':
+        return <SignupPage onNavigate={handleNavigation} />;
+      case 'signin':
+        return <SigninPage onNavigate={handleNavigation} />;
+      case 'landing': // Ensure landing page is explicitly handled
+        return <LandingPage onNavigate={handleNavigation} />;
+      default:
+        return <LandingPage onNavigate={handleNavigation} />; // Default to landing page
+    }
+  };
+
+  return (
+    <div className="app">
+      {renderPage()}
+    </div>
+  );
+};
+
+// Root Component with Auth Provider
+const Root = () => {
+  return (
+    <Router>
+      <AuthProvider>
+        <App /> 
+      </AuthProvider>
+    </Router>
+  );
+};
+
+export default Root;
